@@ -224,5 +224,69 @@ create policy "Usuarios pueden leer empleados"
 ---
 
 
+## Administración de roles y permisos
+
+A continuación se muestra un resumen práctico para **crear un nuevo usuario en Postgres (Supabase)**, asignarle distintos niveles de permisos y comprobarlos.
+
+```sql
+-- 1. Crear un rol con contraseña
+CREATE ROLE nuevo_usuario LOGIN PASSWORD 'Tu_Contraseña_Fuerte';
+
+-- 2. Permisos globales mínimos
+GRANT CONNECT ON DATABASE postgres      TO nuevo_usuario;
+GRANT CONNECT ON DATABASE supabase_dev TO nuevo_usuario;
+
+-- 3. Permisos sobre el esquema y tablas
+GRANT USAGE ON SCHEMA public TO nuevo_usuario;
+
+-- Sólo lectura
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO nuevo_usuario;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT SELECT ON TABLES TO nuevo_usuario;
+
+-- Escritura (opcional)
+GRANT INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO nuevo_usuario;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT INSERT, UPDATE, DELETE ON TABLES TO nuevo_usuario;
+
+-- Secuencias
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO nuevo_usuario;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT USAGE, SELECT ON SEQUENCES TO nuevo_usuario;
+```
+
+### Privilegios avanzados
+
+| Bandera        | Descripción                                          |
+|----------------|-------------------------------------------------------|
+| `CREATEDB`     | Puede crear nuevas bases de datos                     |
+| `CREATEROLE`   | Puede crear o modificar otros roles                   |
+| `BYPASSRLS`    | Omite las políticas de RLS (rol "interno")           |
+| `REPLICATION`  | Permite crear slots de replicación                    |
+| `SUPERUSER`    | *No disponible* en Supabase                           |
+
+Ejemplos:
+```sql
+-- Habilitar privilegios elevados
+ALTER ROLE nuevo_usuario CREATEDB CREATEROLE BYPASSRLS;
+
+-- Consultar privilegios actuales
+SELECT rolname, rolsuper, rolcreaterole, rolcreatedb,
+       rolbypassrls, rolreplication
+FROM pg_roles
+WHERE rolname = 'nuevo_usuario';
+```
+
+Para revocar o eliminar:
+```sql
+REVOKE INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public FROM nuevo_usuario;
+ALTER ROLE nuevo_usuario NOCREATEROLE NOCREATEDB NOBYPASSRLS;
+DROP ROLE IF EXISTS nuevo_usuario;
+```
+
+Con estos comandos podrás crear usuarios **solo lectura**, **lectura-escritura** o **casi-admin** según tus necesidades.
+
+---
+
 ### Licencia
 [MIT](LICENSE)
